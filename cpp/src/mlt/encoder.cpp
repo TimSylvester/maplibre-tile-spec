@@ -60,7 +60,8 @@ namespace {
 // by column metadata, so the catch-all arms are dead by construction.
 // This is used in cases that should be impossible to reach.
 // GCOVR_EXCL_START
-void throwInvalidType() {
+template <typename T>
+[[noreturn]] T throwInvalidType() {
     throw std::runtime_error("Invalid type");
 };
 // GCOVR_EXCL_STOP
@@ -214,19 +215,20 @@ FeatureTable Encoder::Impl::buildMetadata(const Layer& layer,
                 continue;
             }
 
-            const auto scalarType = std::visit(
-                util::overloaded{
-                    [](bool) { return ScalarType::BOOLEAN; },
-                    [](std::int32_t) { return ScalarType::INT_32; },
-                    [](std::int64_t) { return ScalarType::INT_64; },
-                    [](std::uint32_t) { return ScalarType::UINT_32; },
-                    [](std::uint64_t) { return ScalarType::UINT_64; },
-                    [](float) { return ScalarType::FLOAT; },
-                    [](double) { return ScalarType::DOUBLE; },
-                    [](const std::string&) { return ScalarType::STRING; },
-                    [](const Encoder::StructValue&) -> ScalarType { throwInvalidType(); }, // GCOVR_EXCL_LINE
-                },
-                value);
+            const auto scalarType = std::visit(util::overloaded{
+                                                   [](bool) { return ScalarType::BOOLEAN; },
+                                                   [](std::int32_t) { return ScalarType::INT_32; },
+                                                   [](std::int64_t) { return ScalarType::INT_64; },
+                                                   [](std::uint32_t) { return ScalarType::UINT_32; },
+                                                   [](std::uint64_t) { return ScalarType::UINT_64; },
+                                                   [](float) { return ScalarType::FLOAT; },
+                                                   [](double) { return ScalarType::DOUBLE; },
+                                                   [](const std::string&) { return ScalarType::STRING; },
+                                                   [](const Encoder::StructValue&) -> ScalarType { // GCOVR_EXCL_LINE
+                                                       return throwInvalidType<ScalarType>();      // GCOVR_EXCL_LINE
+                                                   },                                              // GCOVR_EXCL_LINE
+                                               },
+                                               value);
 
             auto [it, inserted] = scalarColumns.try_emplace(key, ColumnInfo{.type = scalarType, .presentCount = 0});
             ++it->second.presentCount;
@@ -646,7 +648,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
         const auto& colName = column.name;
         const auto cachedIt = scalarPropertyCache.find(colName);
         if (cachedIt == scalarPropertyCache.end()) {
-            throwInvalidType(); // GCOVR_EXCL_LINE
+            throwInvalidType<void>(); // GCOVR_EXCL_LINE
         }
         const auto& cachedPropertyValues = cachedIt->second;
 
@@ -685,7 +687,9 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                         [](bool v) -> std::uint8_t { return static_cast<std::uint8_t>(v); },
                         // the type is already determined by column metadata, so the catch-all arms are dead by
                         // construction
-                        [](auto&) -> std::uint8_t { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> std::uint8_t {                  // GCOVR_EXCL_LINE
+                            return throwInvalidType<std::uint8_t>(); // GCOVR_EXCL_LINE
+                        },                                           // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(dataValues,
@@ -704,7 +708,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](std::int32_t v) -> std::int32_t { return v; },
                         [](std::int64_t v) -> std::int32_t { return static_cast<std::int32_t>(v); },
-                        [](auto&) -> std::int32_t { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> std::int32_t { return throwInvalidType<std::int32_t>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(dataValues,
@@ -726,7 +730,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](std::uint32_t v) -> std::uint32_t { return v; },
                         [](std::int32_t v) -> std::uint32_t { return static_cast<std::uint32_t>(v); },
-                        [](auto&) -> std::uint32_t { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> std::uint32_t { return throwInvalidType<std::uint32_t>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(
@@ -745,7 +749,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](std::int64_t v) -> std::int64_t { return v; },
                         [](std::int32_t v) -> std::int64_t { return v; },
-                        [](auto&) -> std::int64_t { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> std::int64_t { return throwInvalidType<std::int64_t>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(
@@ -764,7 +768,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](std::uint64_t v) -> std::uint64_t { return v; },
                         [](std::int64_t v) -> std::uint64_t { return static_cast<std::uint64_t>(v); },
-                        [](auto&) -> std::uint64_t { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> std::uint64_t { return throwInvalidType<std::uint64_t>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(
@@ -783,7 +787,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](float v) -> float { return v; },
                         [](double v) -> float { return static_cast<float>(v); },
-                        [](auto&) -> float { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> float { return throwInvalidType<float>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(
@@ -797,7 +801,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                     util::overloaded{
                         [](double v) -> double { return v; },
                         [](float v) -> double { return static_cast<double>(v); },
-                        [](auto&) -> double { throwInvalidType(); }, // GCOVR_EXCL_LINE
+                        [](auto&) -> double { return throwInvalidType<double>(); }, // GCOVR_EXCL_LINE
                     },
                     [&](auto dataValues, const auto& presentValues, bool hasNull) {
                         return PropertyEncoder::encodeDataColumn(
@@ -835,7 +839,7 @@ std::vector<std::uint8_t> Encoder::Impl::encodeLayer(const Layer& layer, const E
                 break;
             }
             default:
-                throwInvalidType(); // GCOVR_EXCL_LINE
+                throwInvalidType<void>(); // GCOVR_EXCL_LINE
         }
         appendEncodedColumnChunks(std::move(encodedChunks));
     }
