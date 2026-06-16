@@ -6,7 +6,7 @@
 	url = https://github.com/simd-everywhere/simde.git
 [submodule "cpp/vendor/fastpfor"]
 	path = cpp/vendor/fastpfor
-	url = https://github.com/fast-pack/FastPFor.git
+    url = https://github.com/TimSylvester/FastPFOR.git
 [submodule "cpp/vendor/json"]
 	path = cpp/vendor/json
 	url = https://github.com/nlohmann/json.git

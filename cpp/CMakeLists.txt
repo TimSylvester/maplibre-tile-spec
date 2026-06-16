@@ -177,11 +177,13 @@ include("${PROJECT_SOURCE_DIR}/vendor/fsst.cmake")
 include("${PROJECT_SOURCE_DIR}/vendor/earcut.cmake")
 
 if(MLT_WITH_FASTPFOR)
+    # NEON support is necessry to build on ARM, even if SIMD operations will not be used
+    set(SUPPORT_NEON ON CACHE BOOL "" FORCE)
+    set(SIMDE_ENABLE_NATIVE_ALIASES ON CACHE BOOL "" FORCE)
+
     if(MLT_WITH_FASTPFOR_SIMD)
         set(FASTPFOR_SIMD_MODE "runtime" CACHE STRING "" FORCE)
     else()
-        # SIMD currently not supported, so SIMDE/NEON isn't needed
-        set(SUPPORT_NEON OFF CACHE BOOL "" FORCE)
         set(SUPPORT_SSE42 OFF CACHE BOOL "" FORCE)
         set(FASTPFOR_SIMD_MODE "portable" CACHE STRING "" FORCE)
     endif(MLT_WITH_FASTPFOR_SIMD)
